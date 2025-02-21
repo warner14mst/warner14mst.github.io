@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diario General Contable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+         }
+        th {
+            background-color: #0d2846;
+            color: white;
+        }
+        input, button, h2 {
+            margin-top: 10px;
+            padding: 8px;
+        } 
+        h1:hover{
+            color: rgb(17, 0, 255);
+        }
+        div {
+            background: rgb(236, 234, 234);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px;
+            width: 220px;
+            text-align: center;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="div"> 
+            <h1>Datos personales del contador</h1>
+            <input type="text" id="rnc" placeholder="RNC">
+            <input type="text" id="nombre" placeholder="Nombre completo">
+            <input type="button" value="Registrar" onclick="registrarDatos()">
+        </div>
+    </div>
+
+    <h2>Diario General </h2>
+    <label>Fecha: <input type="date" id="fecha"></label>
+    <label>Descripción: <input type="text" id="descripcion"></label>
+    <label>Aux: <input type="text" id="aux"></label>
+    <label>Monto: <input type="number" id="monto"></label>
+    <label>Tipo:
+        <select id="tipo">
+            <option value="debito">Débito</option>
+            <option value="credito">Crédito</option>
+        </select>
+    </label>
+    <button onclick="agregarRegistro()">Agregar</button>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Descripción</th>
+                <th>Aux</th>
+                <th>Débito</th>
+                <th>Crédito</th>
+                <th>Registrado por</th>
+                <th>RNC</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-registros">
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3"><strong>Total:</strong></td>
+                <td id="total-debito">0</td>
+                <td id="total-credito">0</td>
+                <td colspan="3"></td>
+            </tr>
+        </tfoot>
+    </table>
+    <button onclick="calcularTotales()">Calcular Totales</button>
+
+    <script>
+        let nombreRegistrado = localStorage.getItem('nombreRegistrado') || "";
+        let rncRegistrado = localStorage.getItem('rncRegistrado') || "";
+
+        function registrarDatos() {
+            let nombreInput = document.getElementById("nombre").value;
+            let rncInput = document.getElementById("rnc").value;
+            if (nombreInput.trim() === "" || rncInput.trim() === "") {
+                alert("Por favor, ingrese su nombre y RNC.");
+                return;
+            }
+            nombreRegistrado = nombreInput;
+            rncRegistrado = rncInput;
+            localStorage.setItem('nombreRegistrado', nombreRegistrado);
+            localStorage.setItem('rncRegistrado', rncRegistrado);
+            alert("Datos registrados: " + nombreRegistrado + " | RNC: " + rncRegistrado);
+        }
+
+        function agregarRegistro() {
+            if (nombreRegistrado === "" || rncRegistrado === "") {
+                alert("Debe registrar su nombre y RNC antes de agregar operaciones.");
+                return;
+            }
+
+            let fecha = document.getElementById("fecha").value;
+            let descripcion = document.getElementById("descripcion").value;
+            let monto = document.getElementById("monto").value;
+            let aux = document.getElementById("aux").value;
+            let tipo = document.getElementById("tipo").value;
+            
+            if (!fecha || !descripcion || !monto || !aux) {
+                alert("Todos los campos son obligatorios");
+                return;
+            }
+
+            let tabla = document.getElementById("tabla-registros");
+            let fila = document.createElement("tr");
+            
+            fila.innerHTML = ` 
+                <td contenteditable="true">${fecha}</td>
+                <td contenteditable="true">${descripcion}</td>
+                <td contenteditable="true">${aux}</td>
+                <td contenteditable="true">${tipo === 'debito' ? monto : ''}</td>
+                <td contenteditable="true">${tipo === 'credito' ? monto : ''}</td>
+                <td>${nombreRegistrado}</td>
+                <td>${rncRegistrado}</td>
+                <td><button onclick="eliminarRegistro(this)">Eliminar</button></td>
+            `;
+            
+            tabla.appendChild(fila);
+            guardarRegistros();
+        }
+
+        function eliminarRegistro(boton) {
+            let fila = boton.parentNode.parentNode;
+            fila.remove();
+            guardarRegistros();
+        }
+
+        function guardarRegistros() {
+            let registros = [];
+            let filas = document.querySelectorAll("#tabla-registros tr");
+            filas.forEach(fila => {
+                let fecha = fila.cells[0].innerText;
+                let descripcion = fila.cells[1].innerText;
+                let aux = fila.cells[2].innerText;
+                let debito = fila.cells[3].innerText;
+                let credito = fila.cells[4].innerText;
+                let registradoPor = fila.cells[5].innerText;
+                let rnc = fila.cells[6].innerText;
+                registros.push({ fecha, descripcion, aux, debito, credito, registradoPor, rnc });
+            });
+            localStorage.setItem('registros', JSON.stringify(registros));
+        }
+
+        function cargarRegistros() {
+            let registros = JSON.parse(localStorage.getItem('registros')) || [];
+            let tabla = document.getElementById("tabla-registros");
+            registros.forEach(registro => {
+                let fila = document.createElement("tr");
+                fila.innerHTML = `
+                    <td contenteditable="true">${registro.fecha}</td>
+                    <td contenteditable="true">${registro.descripcion}</td>
+                    <td contenteditable="true">${registro.aux}</td>
+                    <td contenteditable="true">${registro.debito}</td>
+                    <td contenteditable="true">${registro.credito}</td>
+                    <td>${registro.registradoPor}</td>
+                    <td>${registro.rnc}</td>
+                    <td><button onclick="eliminarRegistro(this)">Eliminar</button></td>
+                `;
+                tabla.appendChild(fila);
+            });
+        }
+
+        function calcularTotales() {
+            let totalDebito = 0;
+            let totalCredito = 0;
+            let filas = document.querySelectorAll("#tabla-registros tr");
+            
+            filas.forEach(fila => {
+                let debito = fila.cells[3].innerText;
+                let credito = fila.cells[4].innerText;
+                
+                totalDebito += debito ? parseFloat(debito) || 0 : 0;
+                totalCredito += credito ? parseFloat(credito) || 0 : 0;
+            });
+            
+            document.getElementById("total-debito").innerText = totalDebito;
+            document.getElementById("total-credito").innerText = totalCredito;
+        }
+
+        // Cargar los registros al inicio
+        window.onload = cargarRegistros;
+    </script>
+</body>
+</html>
